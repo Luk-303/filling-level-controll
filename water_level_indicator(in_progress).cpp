@@ -1,3 +1,13 @@
+/*
+Author: Luk-303
+
+An selfmade IoT device to get the actual water level of a water tank and transmit it to my personal NAS
+
+September 2020
+*/
+
+
+
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
