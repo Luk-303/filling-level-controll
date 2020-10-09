@@ -61,26 +61,26 @@ void SetUpWLan(){
     }
 
     Serial.println(" ");
-    Serial.println("WiFi verbunden!");
+    Serial.println("WiFi connected!");
     
-    Serial.println("IP-Adresse ist: ");
+    Serial.println("IP-Address: ");
     Serial.println(WiFi.localIP());
 }
 
 void reconnect() {
  
   while (!client.connected()) {
-    Serial.print("Es wird sich per MQTT verbunnden.");
+    Serial.print("Trying to connect with MQTT.");
 
     //Verbindungsversuch:
     if (client.connect("/dev/level_gauge_cistern")) {
-      Serial.println("Erfolgreich verbunden!");
-      client.publish("/dev/level_gauge_cistern","Messwert wird übertragen:");
+      Serial.println("Successful!");
+      client.publish("/dev/level_gauge_cistern","It works!");
       client.subscribe("/dev/level_gauge_cistern");
     } else { 
-      Serial.print("Fehler, rc=");
+      Serial.print("ERROR!!, rc=");
       Serial.print(client.state());
-      Serial.println(" Nächster Versuch in 5 Sekunden");
+      Serial.println(" Trying again in a few seconds");
       delay(5000);
     }
   }
