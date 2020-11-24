@@ -3,7 +3,7 @@ Author: Luk-303
 
 An selfmade IoT device to get the actual water level of a water tank and transmit it to my personal NAS
 
-September 2020
+November 2020
 */
 
 
@@ -12,26 +12,31 @@ September 2020
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-//variables to measure the distance
 const unsigned ECHO_PIN= D1; 
 const unsigned TRIGGER_PIN= D2; 
 
-//variables for connecting WiFi
-const char* SSID = "+++++++++++++";
-const char* PASSWORD = "+++++++++++";
-const char* MQTT_BROKER = "+++++++++++++";
+const char* SSID = "***********";
+const char* PASSWORD = "*********";
+const char* MQTT_BROKER = "**********";
 
-const int HEIGHT_CISTERN=400;
+const float HEIGHT_CISTERN=3.00;
+const float DIAMETER_CISTERN=9.35;
 
-char mqtt_sub_value[50];
+char mqtt_sub_value_WaterLevel[50];
+char mqtt_sub_value_inLiter[50];
+char mqtt_sub_value_inPercent[50];
 
+unsigned long timestamp;
+
+unsigned long period=5000;
 
 WiFiClient WemosD1;
 PubSubClient client(WemosD1);
 
-int Measure(){
+float Measure(){
 
-    long duration,distance;
+    long duration;
+    float distance;
 
     digitalWrite(TRIGGER_PIN,LOW);
     delay(5);
@@ -41,49 +46,89 @@ int Measure(){
     
     duration=pulseIn(ECHO_PIN,HIGH);
 
-    distance=(duration/2) * 0.03432;
-
-    return distance;
+    distance=float((duration/2) * 0.03432);
+    return (distance/100);
+  
 }
 
-int CalculateWaterLevel(){
-   int water_level=HEIGHT_CISTERN-Measure();
+float CalculateWaterLevel(){
+
+   float water_level=HEIGHT_CISTERN-Measure();
+
   return water_level;
 }
 
 void SetUpWLan(){
         
-    WiFi.begin(SSID,PASSWORD);
+    WiFi.begin(SSID,PASSWORD); 
 
-    while(WiFi.status()!=WL_CONNECTED){
-        delay(500);
-        Serial.println(".");
+    timestamp=millis();
+
+        while ((millis() - timestamp <= period)&&WiFi.status()!=WL_CONNECTED){
+        yield();
     }
-
-    Serial.println(" ");
-    Serial.println("WiFi connected!");
-    
-    Serial.println("IP-Address: ");
-    Serial.println(WiFi.localIP());
 }
 
 void reconnect() {
- 
-  while (!client.connected()) {
-    Serial.print("Trying to connect with MQTT.");
 
-    //Verbindungsversuch:
-    if (client.connect("/dev/level_gauge_cistern")) {
-      Serial.println("Successful!");
-      client.publish("/dev/level_gauge_cistern","It works!");
-      client.subscribe("/dev/level_gauge_cistern");
-    } else { 
-      Serial.print("ERROR!!, rc=");
-      Serial.print(client.state());
-      Serial.println(" Trying again in a few seconds");
-      delay(5000);
+  long timestamp2=millis();
+
+  while (!client.connected()&&(millis() - timestamp2 <= period)) {
+       //Verbindungsversuch:
+    if (client.connect("/dev/level_gauge_cistern_WaterLevel")) {
+      delay(2000);
+    } else {
+      delay(2000);
+      ESP.deepSleep(4.26e9);   
+      delay(100); 
     }
+    yield();
   }
+}
+float CalculateAmountOfWaterInLiter(){
+  float inLiter=(CalculateWaterLevel()*(4*pow(DIAMETER_CISTERN,2)/3.14))*1000;
+  return inLiter;
+}
+
+float CalculateAmountOfWaterInPercent(){
+    float cisternMax=((4*pow(DIAMETER_CISTERN,2)/3.14)*HEIGHT_CISTERN);
+    float cisternActual=(CalculateWaterLevel()*((pow(DIAMETER_CISTERN,2)*4)/3.14));
+    float inPercent=cisternActual*100/cisternMax;
+
+  return inPercent;
+}
+
+void SendToMQTTBroker(){
+    String waterLevelBuff;
+    String inLiterBuff;
+    String inPercentBuff;
+  
+    waterLevelBuff = String(CalculateWaterLevel());
+    inLiterBuff= String(CalculateAmountOfWaterInLiter());
+    inPercentBuff=String(CalculateAmountOfWaterInPercent());
+
+    if (Measure()>0.50){
+      waterLevelBuff.toCharArray(mqtt_sub_value_WaterLevel,waterLevelBuff.length()+1);
+      inLiterBuff.toCharArray(mqtt_sub_value_inLiter,inLiterBuff.length()+1);
+      inPercentBuff.toCharArray(mqtt_sub_value_inPercent,inPercentBuff.length()+1);
+
+
+      client.publish("/dev/level_gauge_cistern_WaterLevel", mqtt_sub_value_WaterLevel,true);
+      client.publish("/dev/level_gauge_cistern_inLiter",mqtt_sub_value_inLiter,true);
+      client.publish("/dev/level_gauge_cistern_inPercent",mqtt_sub_value_inPercent,true);
+    }
+    else if (Measure()<=0.50){
+      
+      client.publish("/dev/level_gauge_cistern_error", "water level is very high!",true);
+    }
+    else
+    {
+      client.publish("/dev/level_gauge_cistern_error_procedure", "something went wrong!",true);
+
+    }
+    
+
+
 }
 
 void setup()
@@ -97,27 +142,8 @@ void setup()
     client.setServer(MQTT_BROKER, 1883);
 }
  
-void SendToMQTTBroker(){
-    String value_buff;
-  
-    value_buff =  String(CalculateWaterLevel());
-
-    if (Measure()>50){
-      value_buff.toCharArray(mqtt_sub_value,value_buff.length()+1);
-      client.publish("/dev/level_gauge_cistern", mqtt_sub_value,true);
-    }
-    else if (Measure()<=50){
-      
-      client.publish("/dev/level_gauge_cistern", "water level is very high!",true);
-    }
-    else
-    {
-      client.publish("/dev/level_gauge_cistern", "something went wrong!",true);
-    }
-    
 
 
-}
 
 void loop(){
 
@@ -125,8 +151,9 @@ void loop(){
      reconnect();
     }
     SendToMQTTBroker();
-
+    
     delay(2000);
+   ESP.deepSleep(4.26e9); 
 
-    ESP.deepSleep(4.26e9);
+   delay(100);
 }
