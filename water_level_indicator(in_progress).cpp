@@ -7,7 +7,6 @@ November 2020
 */
 
 
-
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
@@ -15,9 +14,9 @@ November 2020
 const unsigned ECHO_PIN= D1; 
 const unsigned TRIGGER_PIN= D2; 
 
-const char* SSID = "***********";
-const char* PASSWORD = "*********";
-const char* MQTT_BROKER = "**********";
+const char* SSID = "xxxxxxxxxxxxxxxxxxx";
+const char* PASSWORD = "xxxxxxxxxxxxxxxxxx";
+const char* MQTT_BROKER = "xxxxxxxxxxxxxxxxx";
 
 const float HEIGHT_CISTERN=3.00;
 const float DIAMETER_CISTERN=9.35;
@@ -79,12 +78,13 @@ void reconnect() {
       delay(2000);
     } else {
       delay(2000);
-      ESP.deepSleep(4.26e9);   
+       ESP.deepSleep(4260000000);
       delay(100); 
     }
     yield();
   }
 }
+
 float CalculateAmountOfWaterInLiter(){
   float inLiter=(CalculateWaterLevel()*(4*pow(DIAMETER_CISTERN,2)/3.14))*1000;
   return inLiter;
@@ -131,6 +131,7 @@ void SendToMQTTBroker(){
 
 }
 
+
 void setup()
 {
     Serial.begin (74880);
@@ -140,20 +141,23 @@ void setup()
 
     SetUpWLan();
     client.setServer(MQTT_BROKER, 1883);
+
 }
  
 
 
 
 void loop(){
-
+    
     if (!client.connected()) {  
      reconnect();
     }
     SendToMQTTBroker();
-    
-    delay(2000);
-   ESP.deepSleep(4.26e9); 
 
-   delay(100);
+    delay(1000);
+   
+    ESP.deepSleep(4260000000);
+    delay(100);
 }
+
+
