@@ -1,7 +1,7 @@
 /*
 Author: Luk-303
 
-An selfmade IoT device to get the actual water level of a water tank and transmit it to my personal NAS
+An selfmade IoT device to get the actual water level of a water tank and transmit it to my RaspberryPi via MQTT
 
 November 2020
 */
