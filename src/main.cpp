@@ -1,73 +1,42 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <PubSubClient.h>
 
-const unsigned ECHO_PIN= D1; 
-const unsigned TRIGGER_PIN= D2; 
+#include "WATER_LEVEL.h"
+#include "MQTT_PUB.h"
 
-const char* SSID = "FRITZ!Box 7590 BG";
-const char* PASSWORD = "18893591242611860663";
-const char* MQTT_BROKER = "192.168.178.68";
 
-const float HEIGHT_CISTERN=3.00;
-const float DIAMETER_CISTERN=9.35;
 
-char mqtt_sub_value_WaterLevel[50];
-char mqtt_sub_value_inLiter[50];
-char mqtt_sub_value_inPercent[50];
+const char* SSID = "xxxxxxxxxxx";
+const char* PASSWORD = "xxxxxxxxxxxx";
+const char* MQTT_BROKER = "xxxxxxxx";
 
-unsigned long timestamp;
+unsigned long nTimestamp;
 
-unsigned long period=5000;
+unsigned long nPeriod=5000;
 
 WiFiClient WemosD1;
 PubSubClient client(WemosD1);
-
-float Measure(){
-
-    long duration;
-    float distance;
-
-    digitalWrite(TRIGGER_PIN,LOW);
-    delay(5);
-    digitalWrite(TRIGGER_PIN,HIGH);
-    delay(10);
-    digitalWrite(TRIGGER_PIN,LOW);
-    
-    duration=pulseIn(ECHO_PIN,HIGH);
-
-    distance=float((duration/2) * 0.03432);
-    return (distance/100);
-  
-}
-
-float CalculateWaterLevel(){
-
-   float water_level=HEIGHT_CISTERN-Measure();
-
-  return water_level;
-}
-
 void SetUpWLan(){
         
     WiFi.begin(SSID,PASSWORD); 
 
-    timestamp=millis();
+    nTimestamp=millis();
 
-        while ((millis() - timestamp <= period)&&WiFi.status()!=WL_CONNECTED){
+        while ((millis() - nTimestamp <= nPeriod)&&WiFi.status()!=WL_CONNECTED){
         yield();
     }
 }
 
 void reconnect() {
 
-  long timestamp2=millis();
+  long nTimestamp2=millis();
 
-  while (!client.connected()&&(millis() - timestamp2 <= period)) {
-       //Verbindungsversuch:
-    if (client.connect("/dev/level_gauge_cistern_WaterLevel")) {
+  while (!client.connected()&&(millis() - nTimestamp2 <= nPeriod)) {
+  //Verbindungsversuch:
+    if (client.connect(PUB_TOPIC)) {
       delay(2000);
-    } else {
+    }
+    else {
       delay(2000);
       ESP.deepSleep(4200000000);      
       delay(100); 
@@ -76,18 +45,6 @@ void reconnect() {
   }
 }
 
-float CalculateAmountOfWaterInLiter(){
-  float inLiter=(CalculateWaterLevel()*(4*pow(DIAMETER_CISTERN,2)/3.14))*1000;
-  return inLiter;
-}
-
-float CalculateAmountOfWaterInPercent(){
-    float cisternMax=((4*pow(DIAMETER_CISTERN,2)/3.14)*HEIGHT_CISTERN);
-    float cisternActual=(CalculateWaterLevel()*((pow(DIAMETER_CISTERN,2)*4)/3.14));
-    float inPercent=cisternActual*100/cisternMax;
-
-  return inPercent;
-}
 
 void SendToMQTTBroker(){
     String waterLevelBuff;
@@ -122,7 +79,6 @@ void SendToMQTTBroker(){
 
 }
 
-
 void setup()
 {
     Serial.begin (74880);
@@ -149,6 +105,5 @@ void loop(){
     ESP.deepSleep(4200000000);
     delay(100);
 }
-
 
 
