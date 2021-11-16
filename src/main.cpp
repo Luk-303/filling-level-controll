@@ -5,9 +5,9 @@
 const unsigned ECHO_PIN= D1; 
 const unsigned TRIGGER_PIN= D2; 
 
-const char* SSID = "FRITZ!Box 7590 BG";
-const char* PASSWORD = "18893591242611860663";
-const char* MQTT_BROKER = "192.168.178.68";
+const char* SSID = "xxxxxxxxxxxxxxxxxx";
+const char* PASSWORD = "xxxxxxxxxxxxxxx";
+const char* MQTT_BROKER = "xxxxxxxxxxxxxxx";
 
 const float HEIGHT_CISTERN=3.00;
 const float DIAMETER_CISTERN=9.35;
